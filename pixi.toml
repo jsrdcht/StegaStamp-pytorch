@@ -1,0 +1,29 @@
+[project]
+name = "StegaStamp-pytorch"
+version = "0.1.0"
+description = "PyTorch reimplementation of StegaStamp with training and inference"
+authors = ["anonymous <anon@example.com>"]
+channels = ["conda-forge", "pytorch"]
+platforms = ["linux-64"]
+
+[dependencies]
+python = ">=3.10,<3.13"
+
+[pypi-dependencies]
+torch = ">=2.1"
+torchvision = ">=0.16"
+numpy = ">=1.24"
+Pillow = ">=9.0"
+lpips = "*"
+kornia = ">=0.7.0"
+bchlib = ">=0.14.0"
+opencv-python = ">=4.8.0"
+tqdm = "*"
+tensorboard = "*"
+
+[tasks]
+train = "python -m stegastamp.train --help | cat"
+encode = "python -m stegastamp.encode_image --help | cat"
+decode = "python -m stegastamp.decode_image --help | cat"
+tb = "tensorboard --logdir output --port 6006 --bind_all"
+

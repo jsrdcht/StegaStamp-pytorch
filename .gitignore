@@ -1,0 +1,11 @@
+__pycache__/
+*.pt
+checkpoints/
+logs/
+saved_models/
+outputs/
+.pixi/
+
+# 兼容可能的输出目录命名
+output/
+
