@@ -25,12 +25,7 @@ pixi run decode
 ### Training
 
 ```bash
-python -m stegastamp.train exp_name \
-  --train_path ./data/mirflickr/images1/images/ \
-  --height 400 --width 400 \
-  --secret_size 20 \
-  --num_steps 140000 --batch_size 4 --lr 1e-4 \
-  --no_gan  # remove this flag to enable GAN losses
+bash scripts/train.sh
 ```
 
 Outputs: `checkpoints/exp_name/*.pt` and `saved_models/exp_name/stegastamp.pt`
