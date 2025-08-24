@@ -1,20 +1,20 @@
 ## StegaStamp-pytorch
 
-PyTorch 复现 StegaStamp（对齐 ISSBA 使用的方案），提供训练与推理脚本。
+A PyTorch reimplementation of StegaStamp aligned with the ISSBA workflow. It provides training and inference scripts.
 
-### 项目状态
-- 当前处于开发阶段（WIP），接口与行为可能变更；欢迎提交 PR。
-- 已知问题：训练中 secret loss 下降缓慢/困难，欢迎一起讨论与改进。
+### Project status
+- Work in progress (WIP). APIs and behavior may change. PRs are welcome.
+- Known issue: the secret loss tends to decrease very slowly and is hard to optimize. Contributions and discussions are welcome.
 
-### 环境（pixi）
+### Environment (pixi)
 
-1) 安装 pixi 后，在项目根目录执行：
+1) After installing pixi, run at the project root:
 
 ```bash
 pixi install
 ```
 
-2) 运行训练/推理帮助：
+2) Helpful entrypoints:
 
 ```bash
 pixi run train
@@ -22,7 +22,7 @@ pixi run encode
 pixi run decode
 ```
 
-### 训练
+### Training
 
 ```bash
 python -m stegastamp.train exp_name \
@@ -30,12 +30,12 @@ python -m stegastamp.train exp_name \
   --height 400 --width 400 \
   --secret_size 20 \
   --num_steps 140000 --batch_size 4 --lr 1e-4 \
-  --no_gan  # 如需GAN，删除该开关
+  --no_gan  # remove this flag to enable GAN losses
 ```
 
-输出：`checkpoints/exp_name/*.pt` 与 `saved_models/exp_name/stegastamp.pt`
+Outputs: `checkpoints/exp_name/*.pt` and `saved_models/exp_name/stegastamp.pt`
 
-### 推理（生成隐藏图与残差）
+### Inference (generate hidden image and residual)
 
 ```bash
 python -m stegastamp.encode_image --model saved_models/exp_name/stegastamp.pt \
@@ -45,7 +45,7 @@ python -m stegastamp.encode_image --model saved_models/exp_name/stegastamp.pt \
   --height 400 --width 400
 ```
 
-### 解码
+### Decode
 
 ```bash
 python -m stegastamp.decode_image --model saved_models/exp_name/stegastamp.pt \
@@ -53,13 +53,13 @@ python -m stegastamp.decode_image --model saved_models/exp_name/stegastamp.pt \
   --height 400 --width 400 --secret_size 20
 ```
 
-### 与原TF实现的差异
-- 训练图像扰动使用 kornia/diffjpeg 近似 tf.contrib 与自定义 JPEG/模糊。
-- LPIPS 使用 `lpips` 包；若未安装会退化到 L2。
-- 解码器含 STN（仿射校正）并输出 `secret_size` 维度 logits；加 `sigmoid` 后取整。
-- 编码器内部 secret 稠密向量长度固定 7500（与 TF Dense 一致），ECC 打包后位数用 0 填充到 7500。
+### Differences from the original TF implementation
+- Training perturbations use kornia/diffjpeg to approximate tf.contrib and custom JPEG/blur ops.
+- LPIPS via the `lpips` package; if not installed it falls back to L2.
+- The decoder contains an STN (affine correction) and outputs `secret_size`-dim logits; apply sigmoid and threshold to bits.
+- The encoder uses a fixed dense secret vector length of 7500 (matching TF Dense); ECC-packed bits are zero-padded to 7500.
 
-### 说明
-- 若用于 ISSBA：请将本项目生成的 `*_hidden.png` 喂给 ISSBA 的分类器后门训练脚本（与原仓库流程一致）。
+### Notes
+- For ISSBA: feed the generated `*_hidden.png` into ISSBA's classifier backdoor training script (same workflow as the original repo).
 
 
