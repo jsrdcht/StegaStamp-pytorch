@@ -36,7 +36,26 @@ class RandomPhotometric(nn.Module):
         lum = (0.299 * x[:, 0:1] + 0.587 * x[:, 1:2] + 0.114 * x[:, 2:3])
         s_scale = torch.rand(b, 1, 1, 1, device=x.device) * (self.rnd_sat * scale)
         x = torch.clamp((x - lum) * (1.0 + s_scale) + lum, 0.0, 1.0)
-        # hue 移动省略（简化）
+        # hue: 在 YUV 色度平面上做小角度旋转，近似模拟色相变化
+        if self.rnd_hue > 0 and scale > 0:
+            # 角度范围 [-rnd_hue*pi, rnd_hue*pi]
+            delta = (torch.rand(b, 1, 1, 1, device=x.device) * 2.0 - 1.0) * (self.rnd_hue * scale) * math.pi
+            cos_a = torch.cos(delta)
+            sin_a = torch.sin(delta)
+            r = x[:, 0:1]
+            g = x[:, 1:2]
+            bch = x[:, 2:3]
+            # RGB -> YUV
+            y = lum
+            u = -0.14713 * r - 0.28886 * g + 0.436 * bch
+            v =  0.615   * r - 0.51499 * g - 0.10001 * bch
+            u2 = u * cos_a - v * sin_a
+            v2 = u * sin_a + v * cos_a
+            # YUV -> RGB（近似逆变换）
+            r2 = y + 1.13983 * v2
+            g2 = y - 0.39465 * u2 - 0.58060 * v2
+            b2 = y + 2.03211 * u2
+            x = torch.clamp(torch.cat([r2, g2, b2], dim=1), 0.0, 1.0)
         return x
 
 
@@ -47,19 +66,21 @@ class RandomBlurNoise(nn.Module):
         self.noise_std = noise_std
 
     def forward(self, x: torch.Tensor, scale: float) -> torch.Tensor:
-        if self.max_sigma_gauss > 0:
-            sigma = (torch.rand(1, device=x.device) * (self.max_sigma_gauss * scale) + 1.0).item()
-            ksize = int(2 * math.ceil(3 * float(sigma)) + 1)
-            ksize = max(3, min(ksize, 31))
-            # 构造高斯核
-            ax = torch.arange(ksize, device=x.device) - (ksize - 1) / 2.0
-            gauss = torch.exp(-(ax ** 2) / (2 * sigma ** 2))
-            kernel2d = (gauss[:, None] @ gauss[None, :])
-            kernel2d = kernel2d / kernel2d.sum()
-            kernel = kernel2d.view(1, 1, ksize, ksize)
-            kernel = kernel.repeat(x.shape[1], 1, 1, 1)  # groups=channels
-            x = F.conv2d(x, kernel, padding=ksize // 2, groups=x.shape[1])
-        if self.noise_std > 0:
+        # 当 scale<=0 时，完全跳过模糊与噪声，避免在 warmup 阶段抹除编码痕迹
+        if self.max_sigma_gauss > 0 and scale > 0:
+            sigma = (torch.rand(1, device=x.device) * (self.max_sigma_gauss * scale)).item()
+            if sigma > 0:
+                ksize = int(2 * math.ceil(3 * float(sigma)) + 1)
+                ksize = max(3, min(ksize, 31))
+                # 构造高斯核
+                ax = torch.arange(ksize, device=x.device) - (ksize - 1) / 2.0
+                gauss = torch.exp(-(ax ** 2) / (2 * sigma ** 2))
+                kernel2d = (gauss[:, None] @ gauss[None, :])
+                kernel2d = kernel2d / kernel2d.sum()
+                kernel = kernel2d.view(1, 1, ksize, ksize)
+                kernel = kernel.repeat(x.shape[1], 1, 1, 1)  # groups=channels
+                x = F.conv2d(x, kernel, padding=ksize // 2, groups=x.shape[1])
+        if self.noise_std > 0 and scale > 0:
             std = torch.rand(1, device=x.device) * (self.noise_std * scale)
             noise = torch.randn_like(x) * std
             x = torch.clamp(x + noise, 0.0, 1.0)
@@ -104,7 +125,19 @@ def affine_matrix(batch: int, max_translate_px: float, height: int, width: int, 
 
 def apply_affine(x: torch.Tensor, theta: torch.Tensor) -> torch.Tensor:
     grid = F.affine_grid(theta, size=list(x.shape), align_corners=False)
-    return F.grid_sample(x, grid, mode="bilinear", padding_mode="zeros", align_corners=False)
+    return F.grid_sample(x, grid, mode="bilinear", padding_mode="border", align_corners=False)
+
+
+def apply_affine_mask_like(x: torch.Tensor, theta: torch.Tensor) -> torch.Tensor:
+    """
+    生成与 x 同形状的有效区域掩码：1 表示有效采样区域，0 表示越界。
+    注意掩码必须用 zeros padding 来区分越界区域。
+    """
+    ones = torch.ones_like(x)
+    grid = F.affine_grid(theta, size=list(x.shape), align_corners=False)
+    mask = F.grid_sample(ones, grid, mode="bilinear", padding_mode="zeros", align_corners=False)
+    # 少量数值抖动，阈值化到 [0,1]
+    return (mask > 0.999).float()
 
 
 def invert_affine_2x3(theta: torch.Tensor) -> torch.Tensor:

@@ -49,10 +49,7 @@ python -m stegastamp.decode_image --model saved_models/exp_name/stegastamp.pt \
 ```
 
 ### Differences from the original TF implementation
-- Training perturbations use kornia/diffjpeg to approximate tf.contrib and custom JPEG/blur ops.
-- LPIPS via the `lpips` package; if not installed it falls back to L2.
-- The decoder contains an STN (affine correction) and outputs `secret_size`-dim logits; apply sigmoid and threshold to bits.
-- The encoder uses a fixed dense secret vector length of 7500 (matching TF Dense); ECC-packed bits are zero-padded to 7500.
+- Removed the original TensorFlow pipeline's affine and inverse transforms around the encoder/decoder. This weakens geometric alignment cues and can make optimization harder (slower convergence, more sensitive to learning rate/regularization).
 
 ### Notes
 - For ISSBA: feed the generated `*_hidden.png` into ISSBA's classifier backdoor training script (same workflow as the original repo).

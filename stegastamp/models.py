@@ -103,7 +103,7 @@ class SpatialTransformer(nn.Module):
     def forward(self, x: torch.Tensor, theta: torch.Tensor) -> torch.Tensor:
         # theta: [B, 2, 3]
         grid = F.affine_grid(theta, size=list(x.shape), align_corners=False)
-        return F.grid_sample(x, grid, mode="bilinear", padding_mode="zeros", align_corners=False)
+        return F.grid_sample(x, grid, mode="bilinear", padding_mode="border", align_corners=False)
 
 
 class StegaStampDecoder(nn.Module):
