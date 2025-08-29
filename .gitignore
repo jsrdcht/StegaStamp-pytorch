@@ -8,3 +8,4 @@ outputs/
 
 # 兼容可能的输出目录命名
 output/
+*.tfevents

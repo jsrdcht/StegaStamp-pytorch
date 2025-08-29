@@ -5,6 +5,29 @@ A PyTorch reimplementation of StegaStamp. It provides training and inference scr
 ### News
 - We have released the official version! Enjoy! The current code implements the basic functionality of StegaStamp. However, some features from the TensorFlow implementation, such as geometric augmentation, have not been adopted. We found that the basic implementation can already achieve the goal of hiding information with good image quality.
 
+### Pretrained checkpoint & TensorBoard
+
+- We provide a ready-to-use checkpoint trained on ImageNet-1k: `./asset/best.pth`.
+- The TensorBoard training log is available at: `./asset/tb/events.out.tfevents.1756410296.91d4c03cd5a7.368833.0`.
+ - Note: The TensorBoard log above is large and not tracked in git.
+
+Quick test with the pretrained checkpoint:
+
+```bash
+pixi run python -m stegastamp.encode_image \
+  --model ./asset/best.pth \
+  --image ./asset/Shooting_of_Donald_Trump.jpg \
+  --save_dir ./outputs/demo \
+  --secret "Stega!" \
+  --height 400 --width 400
+```
+
+Open TensorBoard to view the training curves:
+
+```bash
+tensorboard --logdir ./asset/tb --port 6006 --host 0.0.0.0
+```
+
 ### Environment (pixi)
 
 1) After installing pixi, run at the project root:
@@ -65,9 +88,9 @@ Here's an example of encoding and decoding an image with a secret message.
 
 ```bash
 pixi run python -m stegastamp.encode_image \\
-  --model /workspace/StegaStamp-pytorch/checkpoints/20250828_194452_stegastamp_imagenet_align_to_backdoorbox_version3_photometric/best.pth \\
-  --image /workspace/StegaStamp-pytorch/asset/Shooting_of_Donald_Trump.jpg \\
-  --save_dir /workspace/StegaStamp-pytorch/outputs/demo \\
+  --model ./asset/best.pth \\
+  --image ./asset/Shooting_of_Donald_Trump.jpg \\
+  --save_dir ./outputs/demo \\
   --secret "Stega!" \\
   --height 400 --width 400
 ```
@@ -89,8 +112,8 @@ This will generate two images in the `outputs/demo` directory:
 
 ```bash
 pixi run python -m stegastamp.decode_image \\
-  --model /workspace/StegaStamp-pytorch/checkpoints/20250828_194452_stegastamp_imagenet_align_to_backdoorbox_version3_photometric/best.pth \\
-  --image /workspace/StegaStamp-pytorch/asset/Shooting_of_Donald_Trump_hidden.png \\
+  --model ./asset/best.pth \\
+  --image ./asset/Shooting_of_Donald_Trump_hidden.png \\
   --height 400 --width 400 --secret_size 100
 ```
 
