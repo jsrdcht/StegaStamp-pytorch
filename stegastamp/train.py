@@ -216,6 +216,19 @@ def main():
     best_val_step = -1
     best_val_bit_acc = 0.0
 
+    def keep_only_latest_and_best(directory: str) -> None:
+        """Remove all checkpoint files except 'latest.pth' and 'best.pth'."""
+        try:
+            for fname in os.listdir(directory):
+                if fname.endswith((".pt", ".pth")) and (fname not in ("best.pth", "latest.pth")):
+                    fpath = os.path.join(directory, fname)
+                    try:
+                        os.remove(fpath)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
     def evaluate_on_val() -> Tuple[float, float, float, float]:
         if val_loader is None:
             return float('inf'), 0.0, float('inf'), float('inf')
@@ -437,7 +450,9 @@ def main():
                     "discriminator": discriminator.state_dict(),
                     "step": global_step,
                 }
-                torch.save(ckpt, os.path.join(args.checkpoints_dir, args.exp_name, f"{args.exp_name}_{global_step}.pt"))
+                latest_path = os.path.join(args.checkpoints_dir, args.exp_name, "latest.pth")
+                torch.save(ckpt, latest_path)
+                keep_only_latest_and_best(os.path.join(args.checkpoints_dir, args.exp_name))
 
             # validation and best checkpointing
             if val_loader is not None and (global_step % args.val_interval) == 0:
@@ -467,6 +482,7 @@ def main():
                         "val_secret_loss": v_sec_loss,
                     }
                     torch.save(best_ckpt, os.path.join(args.checkpoints_dir, args.exp_name, "best.pth"))
+                    keep_only_latest_and_best(os.path.join(args.checkpoints_dir, args.exp_name))
                     print(f"[val] New best.pth at step {global_step}: lpips {v_lpips:.4f}, bit {v_bit_acc:.4f}")
 
             global_step += 1

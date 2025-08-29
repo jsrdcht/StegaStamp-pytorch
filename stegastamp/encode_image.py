@@ -44,7 +44,7 @@ def main():
 
     encoder.eval()
 
-    bch = bchlib.BCH(BCH_POLYNOMIAL, BCH_BITS)
+    bch = bchlib.BCH(BCH_BITS, BCH_POLYNOMIAL)
     if len(args.secret) > 7:
         raise SystemExit("Error: max 7 characters with ECC")
 

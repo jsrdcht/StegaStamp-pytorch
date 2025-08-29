@@ -3,7 +3,7 @@
 set -euo pipefail
 
 IMAGENET_ROOT=${1:-/workspace/imagenet-1k}
-EXP_NAME=${2:-stegastamp_imagenet_align_to_backdoorbox_version3_photometric}
+EXP_NAME=${2:-resolution_224}
 EXTRA_ARGS=("${@:3}")
 
 # 解析脚本与工程根路径
@@ -33,9 +33,9 @@ fi
 CUDA_VISIBLE_DEVICES=3 python -m stegastamp.train "$EXP_NAME" \
   --train_path "$TRAIN_PATH" \
   ${VAL_PATH:+--val_path "$VAL_PATH"} \
-  --height 400 --width 400 \
+  --height 224 --width 224 \
   --secret_size 100 \
-  --num_steps 140000 \
+  --num_steps 100000 \
   --lr 1e-4 \
   --batch_size 32 \
   --rnd_trans 0.1 --rnd_noise 0.02 --rnd_bri 0.3 --rnd_sat 1.0 --rnd_hue 0.1 \

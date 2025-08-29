@@ -42,7 +42,7 @@ def main():
         decoder.load_state_dict(ckpt)
     decoder.eval()
 
-    bch = bchlib.BCH(BCH_POLYNOMIAL, BCH_BITS)
+    bch = bchlib.BCH(BCH_BITS, BCH_POLYNOMIAL)
 
     size = (args.width, args.height)
     with torch.no_grad():
@@ -55,7 +55,7 @@ def main():
         bits = torch.round(torch.sigmoid(logits)).squeeze(0).cpu().numpy().astype(np.uint8).tolist()
 
         # 先取前 56 + ecc 位尝试纠错
-        raw = bits_to_bytes(bits)
+        raw = bits_to_bytes(bits[:-4])
         data, ecc = raw[:7], raw[7:]
         try:
             bch.decode(bytearray(data), bytearray(ecc))
